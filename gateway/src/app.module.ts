@@ -4,7 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 
 import { AuthController } from './auth.controller';
-import { AuthService } from './services';
+import { AuthService, UsersTransportService } from './services';
 
 
 @Module({
@@ -96,6 +96,7 @@ import { AuthService } from './services';
   ],
   providers: [
     AuthService,
+    UsersTransportService,
   ],
 })
 export class AppModule {}

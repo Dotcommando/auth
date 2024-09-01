@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+
+  users-db-service:
+    image: mongo:6.0
+    command: [ "--bind_ip", "0.0.0.0", "--port", "${MONGO_PORT}", "--wiredTigerCacheSizeGB", "1" ]
+    restart: always
+    env_file: .env
+    container_name: users-db-container
+    volumes:
+      - "./data/db:/data/db"
+    hostname: localhost
+    ports:
+      - "${MONGO_PORT}:${MONGO_PORT}"
+    deploy:
+      resources:
+        limits:
+          memory: 2G

@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  auth-transport-service:
+    image: rabbitmq:3-management
+    container_name: auth-transport-container
+    env_file:
+      - .env
+    ports:
+      - "${RABBITMQ_PORT:-5673}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15673}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  rabbitmq_data:

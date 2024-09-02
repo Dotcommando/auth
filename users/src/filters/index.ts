@@ -1,1 +1,1 @@
-export * from './tcp-common-exception.filter';
+export * from './rabbit-mq-exception.filter';

@@ -1,22 +1,27 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { Transport } from '@nestjs/microservices';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 
-import { UsersModule } from './users.module';
+import { AppModule } from './app.module';
+import { RabbitMQExceptionFilter } from './filters';
 
 
 async function bootstrap() {
-  const app = await NestFactory.createMicroservice(UsersModule, {
-    transport: Transport.TCP,
-    options: {
-      host: process.env.USERS_SERVICE_HOST,
-      port: process.env.USERS_SERVICE_PORT,
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+
+  app.useGlobalFilters(new RabbitMQExceptionFilter());
+  app.useGlobalPipes(new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transformOptions: {
+      enableImplicitConversion: true,
     },
-  });
+  }));
+  app.setGlobalPrefix('api/v1');
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
-
-  await app.listen();
+  await app.startAllMicroservices();
+  await app.listen(process.env.USERS_SERVICE_PORT);
 }
 
 bootstrap();

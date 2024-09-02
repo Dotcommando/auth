@@ -13,4 +13,6 @@ export interface IUser<T_id = ObjectID> extends IBasicUserData {
   emailConfirmed: boolean;
   phoneConfirmed: boolean;
   deactivated: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }

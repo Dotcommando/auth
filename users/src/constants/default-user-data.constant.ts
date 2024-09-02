@@ -1,16 +1,14 @@
-import { ROLE } from '../constants';
+import { ROLE } from './role.enum';
+
 import { IUser } from '../types';
 
 
-export const DEFAULT_USER_DATA: Omit<IUser, '_id'> = {
+export const DEFAULT_USER_DATA: Omit<IUser, 'id' | 'createdAt' | 'updatedAt'> = {
   firstName: '',
   lastName: '',
   email: '',
   avatar: '',
-  addresses: [],
-  phoneNumber: '',
   role: ROLE.USER,
-  orders: [],
   emailConfirmed: false,
   phoneConfirmed: false,
   deactivated: false,

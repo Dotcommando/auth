@@ -1,17 +1,16 @@
-import * as bcrypt from 'bcrypt';
+import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import * as mongoose from 'mongoose';
-import { Document, Schema, Types } from 'mongoose';
+import { Document, Schema } from 'mongoose';
 
 import {
+  EMAIL_MAX_LENGTH,
   EMAIL_REGEXP,
-  IMAGE_ADDRESS_MAX_LENGTH,
-  NAME_MAX_LENGTH,
+  FIRST_NAME_MAX_LENGTH,
+  LAST_NAME_MAX_LENGTH,
+  MIDDLE_NAME_MAX_LENGTH,
   NAME_MIN_LENGTH,
   NAME_REGEXP,
-  PASSWORD_MIN_LENGTH,
   PHONE_NUMBER_MAX_LENGTH,
-  PHONE_NUMBER_MIN_LENGTH,
-  PROPERTY_LENGTH_64,
   ROLE,
   USERNAME_MAX_LENGTH,
   USERNAME_MIN_LENGTH,
@@ -26,7 +25,7 @@ function safeValue(doc, ret: { [key: string]: unknown }) {
   delete ret.id;
 }
 
-const SALT_ROUNDS = 10;
+const SALT_LENGTH = 16;
 
 export interface IUserDoc extends Omit<IUser, 'id'>, Document<IUser> {
   password: string;
@@ -37,26 +36,26 @@ export interface IUserDoc extends Omit<IUser, 'id'>, Document<IUser> {
 export const UserSchema = new Schema<IUserDoc, mongoose.Model<IUserDoc>>(
   {
     firstName: {
-      type: String,
+      type: Schema.Types.String,
       required: [ true, 'First name is required' ],
       minLength: NAME_MIN_LENGTH,
-      maxLength: NAME_MAX_LENGTH,
+      maxLength: FIRST_NAME_MAX_LENGTH,
       match: [ NAME_REGEXP, 'First name can contain just latin symbols, digits, underscores and single quotes' ],
     },
     middleName: {
-      type: String,
-      validate: optionalRange(NAME_MIN_LENGTH, NAME_MAX_LENGTH),
+      type: Schema.Types.String,
+      validate: optionalRange(NAME_MIN_LENGTH, MIDDLE_NAME_MAX_LENGTH),
       match: [ NAME_REGEXP, 'Middle name can contain just latin symbols, digits, underscores and single quotes' ],
     },
     lastName: {
-      type: String,
+      type: Schema.Types.String,
       required: [ true, 'Last name is required' ],
       minLength: NAME_MIN_LENGTH,
-      maxLength: NAME_MAX_LENGTH,
+      maxLength: LAST_NAME_MAX_LENGTH,
       match: [ NAME_REGEXP, 'Last name can contain just latin symbols, digits, underscores and single quotes' ],
     },
     username: {
-      type: String,
+      type: Schema.Types.String,
       validate: optionalRange(USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH),
       // @ts-ignore
       match: [
@@ -71,23 +70,22 @@ export const UserSchema = new Schema<IUserDoc, mongoose.Model<IUserDoc>>(
       },
     },
     email: {
-      type: String,
+      type: Schema.Types.String,
       required: [ true, 'Email can not be empty' ],
       index: { unique: true },
       lowercase: true,
       match: [ EMAIL_REGEXP, 'Email should be valid' ],
-      maxLength: PROPERTY_LENGTH_64,
+      maxLength: EMAIL_MAX_LENGTH,
     },
     avatar: {
-      type: String,
-      validate: optionalRange(0, IMAGE_ADDRESS_MAX_LENGTH),
+      type: Schema.Types.String,
     },
     phoneNumber: {
-      type: String,
-      validate: optionalRange(PHONE_NUMBER_MIN_LENGTH, PHONE_NUMBER_MAX_LENGTH),
+      type: Schema.Types.String,
+      validate: optionalRange(6, PHONE_NUMBER_MAX_LENGTH),
     },
     role: {
-      type: String,
+      type: Schema.Types.String,
       required: [ true, 'User must have a role' ],
       default: ROLE.USER,
       enum: [
@@ -106,13 +104,20 @@ export const UserSchema = new Schema<IUserDoc, mongoose.Model<IUserDoc>>(
       required: [ true, 'Phone confirmation field can not be empty' ],
     },
     password: {
-      type: String,
+      type: Schema.Types.String,
       required: [ true, 'Password can not be empty' ],
-      minlength: [ PASSWORD_MIN_LENGTH, 'Password should include at least 6 symbols' ],
     },
     deactivated: {
       type: Schema.Types.Boolean,
       default: false,
+    },
+    updatedAt: {
+      type: Schema.Types.Date,
+      default: Date.now,
+    },
+    createdAt: {
+      type: Schema.Types.Date,
+      default: Date.now,
     },
   },
   {
@@ -131,12 +136,18 @@ export const UserSchema = new Schema<IUserDoc, mongoose.Model<IUserDoc>>(
 
 UserSchema.methods = {
   getEncryptedPassword(password: string) {
-    return bcrypt.hash(String(password), SALT_ROUNDS);
+    const salt = randomBytes(SALT_LENGTH).toString('hex');
+    const hashedPassword = scryptSync(password, salt, 64).toString('hex');
+
+    return `${salt}:${hashedPassword}`;
   },
 
   async compareEncryptedPassword(password: string) {
-    // @ts-ignore
-    return await bcrypt.compare(password, this.password);
+    const [ salt, hashedPassword ] = this.password.split(':');
+    const hashedBuffer = scryptSync(password, salt, 64);
+    const keyBuffer = Buffer.from(hashedPassword, 'hex');
+
+    return timingSafeEqual(hashedBuffer, keyBuffer);
   },
 };
 
@@ -148,8 +159,8 @@ UserSchema.pre<IUserDoc>('save', async function(next) {
   if (!this.isModified('password')) {
     return next();
   }
-  // @ts-ignore
-  self.password = await self.getEncryptedPassword(self.password);
+
+  self.password = self.getEncryptedPassword(self.password);
   next();
 });
 
@@ -159,7 +170,7 @@ UserSchema.pre<IUserDoc>('updateOne', async function(next) {
       // @ts-ignore
       const docToUpdate = await this.model.findOne(this.getQuery());
 
-      this['_update'].password = await docToUpdate.getEncryptedPassword(this['_update'].password);
+      this['_update'].password = docToUpdate.getEncryptedPassword(this['_update'].password);
     }
 
     if (this?.['_update']?.email) {

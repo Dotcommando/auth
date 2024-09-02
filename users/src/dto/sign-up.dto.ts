@@ -1,9 +1,47 @@
-import { IntersectionType, PickType } from '@nestjs/swagger';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
-import { PartialUserDto, UserDto } from './user.dto';
+import {
+  EMAIL_MAX_LENGTH,
+  FIRST_NAME_MAX_LENGTH,
+  LAST_NAME_MAX_LENGTH,
+  MIDDLE_NAME_MAX_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  USERNAME_MAX_LENGTH,
+} from '../constants';
 
 
-export class SignUpDto extends IntersectionType(
-  PickType(UserDto, [ 'firstName', 'lastName', 'email', 'password' ]),
-  PickType(PartialUserDto, [ 'middleName', 'username' ]),
-) {}
+export class SignUpDto {
+  @IsString()
+  @IsEmail()
+  @IsNotEmpty()
+  @MaxLength(EMAIL_MAX_LENGTH)
+  email: string;
+
+  @IsString()
+  @MaxLength(USERNAME_MAX_LENGTH)
+  username: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(FIRST_NAME_MAX_LENGTH)
+  firstName: string;
+
+  @IsString()
+  @MaxLength(MIDDLE_NAME_MAX_LENGTH)
+  middleName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(LAST_NAME_MAX_LENGTH)
+  lastName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(PASSWORD_MAX_LENGTH)
+  password: string;
+}

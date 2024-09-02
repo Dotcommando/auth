@@ -1,63 +1,46 @@
 import { Controller } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
 
-import { USERS_EVENTS } from './constants';
-import {
-  DeleteUserDto,
-  GetUserDto,
-  LogoutDto,
-  ReissueTokensBodyDto,
-  SignInBodyDto,
-  SignUpDto,
-  UpdateUserDto,
-  VerifyAccessTokenDto,
-} from './dto';
-import { UsersService } from './services';
-import { IResponse, IUser } from './types';
-import { IIssueTokensRes, ILogoutRes, ISignInRes, IVerifyTokenRes } from './types';
+import { MessageHandlerErrorBehavior, RabbitPayload, RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 
+import { config } from 'dotenv';
+
+import { SignUpDto } from './dto';
+import { TransportService, UsersService } from './services';
+import { IReply, ITokens, IUser } from './types';
+import { configuredReplyErrorCallback } from './utils';
+
+
+config();
+
+const exchange = process.env.RMQ_USERS_TRANSPORT_EXCHANGE;
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  private rkSignUpReply = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_UP_REPLY_RK');
 
-  @MessagePattern(USERS_EVENTS.USER_CREATE_USER)
-  public async signUp(user: SignUpDto): Promise<IResponse<{ user: IUser }>> {
-    return await this.usersService.signUp(user);
-  }
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly transportService: TransportService,
+    private readonly usersService: UsersService,
+  ) {}
 
-  @MessagePattern(USERS_EVENTS.USER_ISSUE_TOKENS)
-  public async signIn(user: SignInBodyDto): Promise<IResponse<ISignInRes>> {
-    return await this.usersService.signIn(user);
-  }
+  @RabbitRPC({
+    exchange,
+    routingKey: process.env.RMQ_USERS_TRANSPORT_SIGN_UP_REQUEST_RK,
+    queue: process.env.RMQ_USERS_TRANSPORT_SIGN_UP_REQUEST_QUEUE,
+    errorBehavior: MessageHandlerErrorBehavior.ACK,
+    errorHandler: configuredReplyErrorCallback,
+  })
+  public async handleSignUp(
+    @RabbitPayload() payload: SignUpDto,
+  ): Promise<IReply<{ user: Omit<IUser<string>, 'password'>; tokens: ITokens }>> {
+    const registeredUserReply: IReply<{ user: Omit<IUser<string>, 'password'> }> = await this.usersService.signUp(payload);
 
-  @MessagePattern(USERS_EVENTS.USER_VERIFY_ACCESS_TOKEN)
-  public async verifyAccessToken(data: VerifyAccessTokenDto): Promise<IResponse<IVerifyTokenRes>> {
-    return await this.usersService.verifyAccessToken(data);
-  }
+    this.transportService.publish(this.rkSignUpReply, registeredUserReply);
 
-  @MessagePattern(USERS_EVENTS.USER_GET_USER)
-  public async getUser(data: GetUserDto): Promise<IResponse<{ user: IUser<string> }>> {
-    return await this.usersService.getUser(data);
-  }
-
-  @MessagePattern(USERS_EVENTS.USER_UPDATE_USER)
-  public async updateUser(data: UpdateUserDto): Promise<IResponse<{ user: IUser<string> }>> {
-    return await this.usersService.updateUser(data);
-  }
-
-  @MessagePattern(USERS_EVENTS.USER_DELETE_USER)
-  public async deleteUser(data: DeleteUserDto): Promise<IResponse<ILogoutRes>> {
-    return await this.usersService.deleteUser(data);
-  }
-
-  @MessagePattern(USERS_EVENTS.USER_REISSUE_TOKENS)
-  public async reissueTokens(data: ReissueTokensBodyDto): Promise<IResponse<IIssueTokensRes>> {
-    return await this.usersService.reissueTokens(data);
-  }
-
-  @MessagePattern(USERS_EVENTS.USER_LOGOUT)
-  public async logout(data: LogoutDto): Promise<IResponse<null>> {
-    return await this.usersService.logout(data);
+    return {
+      user: registeredUserReply.data.user,
+    };
   }
 }

@@ -31,11 +31,6 @@ export const TokenSchema = new Schema<ITokenDoc, mongoose.Model<ITokenDoc>>(
       index: true,
       required: [ true, 'Token hash is required' ],
     },
-    issuedForUserAgent: {
-      type: Schema.Types.ObjectId,
-      ref: 'UserAgent',
-      required: [ true, 'User Agent Id required' ],
-    },
     issuedAt: {
       type: Schema.Types.Date,
       required: [ true, 'Date of issuing required' ],

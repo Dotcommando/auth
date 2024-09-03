@@ -5,7 +5,7 @@ import { MessageHandlerErrorBehavior, RabbitPayload, RabbitRPC } from '@golevelu
 
 import { config } from 'dotenv';
 
-import { SignUpDto } from './dto';
+import { AuthenticateDto, SignUpDto } from './dto';
 import { TransportService, UsersService } from './services';
 import { IReply, ITokens, IUser } from './types';
 import { configuredReplyErrorCallback } from './utils';
@@ -35,12 +35,50 @@ export class UsersController {
   public async handleSignUp(
     @RabbitPayload() payload: SignUpDto,
   ): Promise<IReply<{ user: Omit<IUser<string>, 'password'>; tokens: ITokens }>> {
-    const registeredUserReply: IReply<{ user: Omit<IUser<string>, 'password'> }> = await this.usersService.signUp(payload);
+    const registeredUserReply: IReply<{ user: Omit<IUser<string>, 'password'> }> = await this.usersService
+      .signUp(payload);
 
-    this.transportService.publish(this.rkSignUpReply, registeredUserReply);
+    if (registeredUserReply.errors) {
+      return {
+        data: null,
+        errors: registeredUserReply.errors,
+      };
+    }
+
+    const signInReply: IReply<{ user: Omit<IUser<string>, 'password'>; tokens: ITokens }> = await this.usersService
+      .signIn(payload.email, payload.password);
+
+    if (signInReply.errors) {
+      return {
+        data: null,
+        errors: signInReply.errors,
+      };
+    }
+
+    this.transportService.publish(this.rkSignUpReply, signInReply);
+
+    return signInReply;
+  }
+
+  @RabbitRPC({
+    exchange,
+    routingKey: process.env.RMQ_USERS_TRANSPORT_AUTHENTICATE_REQUEST_RK,
+    queue: process.env.RMQ_USERS_TRANSPORT_AUTHENTICATE_REQUEST_QUEUE,
+    errorBehavior: MessageHandlerErrorBehavior.ACK,
+    errorHandler: configuredReplyErrorCallback,
+  })
+  public async handleAuthenticate(
+    @RabbitPayload() payload: AuthenticateDto,
+  ): Promise<IReply<{ tokens: ITokens }>> {
+
 
     return {
-      user: registeredUserReply.data.user,
+      data: {
+        tokens: {
+          accessToken: '',
+          refreshToken: '',
+        },
+      },
     };
   }
 }

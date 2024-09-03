@@ -74,6 +74,20 @@ import { AuthService, UsersTransportService } from './services';
           {
             channel: configService.get('RMQ_USERS_TRANSPORT_CHANNEL'),
             exchange: configService.get('RMQ_USERS_TRANSPORT_EXCHANGE'),
+            name: configService.get('RMQ_USERS_TRANSPORT_AUTHENTICATE_REQUEST_QUEUE'),
+            routingKey: configService.get('RMQ_USERS_TRANSPORT_AUTHENTICATE_REQUEST_RK'),
+            createQueueIfNotExists: true,
+          },
+          {
+            channel: configService.get('RMQ_USERS_TRANSPORT_CHANNEL'),
+            exchange: configService.get('RMQ_USERS_TRANSPORT_EXCHANGE'),
+            name: configService.get('RMQ_USERS_TRANSPORT_AUTHENTICATE_REPLY_QUEUE'),
+            routingKey: configService.get('RMQ_USERS_TRANSPORT_AUTHENTICATE_REPLY_RK'),
+            createQueueIfNotExists: true,
+          },
+          {
+            channel: configService.get('RMQ_USERS_TRANSPORT_CHANNEL'),
+            exchange: configService.get('RMQ_USERS_TRANSPORT_EXCHANGE'),
             name: configService.get('RMQ_USERS_TRANSPORT_LOGOUT_REQUEST_QUEUE'),
             routingKey: configService.get('RMQ_USERS_TRANSPORT_LOGOUT_REQUEST_RK'),
             createQueueIfNotExists: true,

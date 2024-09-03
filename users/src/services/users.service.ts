@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UserDataService } from './user-data.service';
 
 import { SignUpDto } from '../dto';
-import { IReply, IUser } from '../types';
+import { IReply, ITokens, IUser } from '../types';
 
 
 @Injectable()
@@ -56,5 +56,33 @@ export class UsersService {
         errors: [ e.message ],
       };
     }
+  }
+
+  public async signIn(
+    emailOrUsername: string,
+    password: string,
+  ): Promise<IReply<{ user: Omit<IUser<string>, 'password'>; tokens: ITokens }>> {
+    const user: Omit<IUser<string>, 'password'> | null = await this.userDataService
+      .validateUserCredentials(emailOrUsername, password);
+
+    if (!user) {
+      return {
+        data: null,
+        errors: [ 'Invalid email, username, or password' ],
+      };
+    }
+
+    const accessToken = this.userDataService.issueToken(user.id, 'access');
+    const refreshToken = this.userDataService.issueToken(user.id, 'refresh');
+
+    return {
+      data: {
+        user,
+        tokens: {
+          accessToken,
+          refreshToken,
+        },
+      },
+    };
   }
 }

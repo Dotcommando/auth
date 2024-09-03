@@ -3,16 +3,19 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 
+import { createHash } from 'crypto';
 import { Model, Types } from 'mongoose';
 
-import { DEFAULT_USER_DATA } from '../constants';
+import { DEFAULT_USER_DATA, INVALID_TOKEN_REASON } from '../constants';
 import { userDocToUser } from '../mappers';
 import { ITokenDoc, IUserDoc } from '../schemas';
-import { IToken, IUser } from '../types';
+import { IToken, ITokens, IUser } from '../types';
 
 
 @Injectable()
 export class UserDataService {
+  private jwtSecretKey = this.configService.get('JWT_SECRET_KEY');
+
   constructor(
     @InjectModel('Token') private readonly tokenModel: Model<ITokenDoc>,
     @InjectModel('User') private readonly userModel: Model<IUserDoc>,
@@ -47,12 +50,35 @@ export class UserDataService {
     return { occupied: Boolean(user) };
   }
 
-  private issueToken(
+  public async validateUserCredentials(
+    emailOrUsername: string,
+    password: string,
+  ): Promise<Omit<IUser<string>, 'password'> | null> {
+    const user: IUserDoc = await this.userModel.findOne({
+      $or: [
+        { email: emailOrUsername.toLowerCase() },
+        { username: emailOrUsername },
+      ],
+    }).exec();
+
+    if (!user) {
+      return null;
+    }
+
+    const isPasswordValid = await user.compareEncryptedPassword(password);
+
+    if (!isPasswordValid) {
+      return null;
+    }
+
+    return userDocToUser(user);
+  }
+
+  public issueToken(
     userId: string | Types.ObjectId,
-    userAgent: string = '',
     tokenType: 'refresh' | 'access' = 'access',
   ): string {
-    const options = { secret: this.configService.get('secretKey') };
+    const options = { secret: this.jwtSecretKey };
     const now = Date.now();
 
     return this.jwtService.sign(
@@ -64,10 +90,77 @@ export class UserDataService {
         exp: now + (tokenType === 'access'
           ? this.configService.get('JWT_ACCESS_TOKEN_EXPIRES_IN')
           : this.configService.get('JWT_REFRESH_TOKEN_EXPIRES_IN')),
-        uag: userAgent,
         iat: now,
       },
       options,
     );
+  }
+
+  public async validateAccessToken(
+    token: string,
+    userId: string | Types.ObjectId,
+  ): Promise<{ valid: boolean; reason?: INVALID_TOKEN_REASON }> {
+    try {
+      const decodedToken = this.jwtService.verify(token, { secret: this.jwtSecretKey });
+
+      if (decodedToken.sub !== String(userId)) {
+        return { valid: false, reason: INVALID_TOKEN_REASON.ACCESS_TOKEN_WRONG_USER };
+      }
+
+      const encryptedToken = this.getEncryptedToken(token);
+      const tokenDoc: ITokenDoc = await this.tokenModel.findOne({
+        refreshToken: encryptedToken,
+        userId,
+      }).exec();
+
+      if (tokenDoc?.blacklisted) {
+        return { valid: false, reason: INVALID_TOKEN_REASON.ACCESS_TOKEN_BLACKLISTED };
+      }
+
+      if (Date.now() > decodedToken.exp) {
+        return { valid: false, reason: INVALID_TOKEN_REASON.ACCESS_TOKEN_EXPIRED };
+      }
+
+      return { valid: true };
+    } catch (error) {
+      return { valid: false, reason: INVALID_TOKEN_REASON.ACCESS_TOKEN_CANNOT_BE_DECRYPTED };
+    }
+  }
+
+  public async validateRefreshToken(
+    token: string,
+    userId: string | Types.ObjectId,
+  ): Promise<{ valid: boolean; reason?: INVALID_TOKEN_REASON }> {
+    try {
+      const decodedToken = this.jwtService.verify(token, { secret: this.jwtSecretKey });
+
+      if (decodedToken.sub !== String(userId)) {
+        return { valid: false, reason: INVALID_TOKEN_REASON.REFRESH_TOKEN_WRONG_USER };
+      }
+
+      const encryptedToken = this.getEncryptedToken(token);
+      const tokenDoc: ITokenDoc = await this.tokenModel.findOne({
+        refreshToken: encryptedToken,
+        userId,
+      }).exec();
+
+      if (tokenDoc?.blacklisted) {
+        return { valid: false, reason: INVALID_TOKEN_REASON.REFRESH_TOKEN_BLACKLISTED };
+      }
+
+      if (Date.now() > new Date(tokenDoc.expiredAfter).getTime()) {
+        return { valid: false, reason: INVALID_TOKEN_REASON.REFRESH_TOKEN_EXPIRED };
+      }
+
+      return { valid: true };
+    } catch (error) {
+      return { valid: false, reason: INVALID_TOKEN_REASON.REFRESH_TOKEN_CANNOT_BE_DECRYPTED };
+    }
+  }
+
+  private getEncryptedToken(token: string): string {
+    return createHash('sha256')
+      .update(`${this.jwtSecretKey}:${token}`)
+      .digest('hex');
   }
 }

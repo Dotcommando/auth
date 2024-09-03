@@ -73,6 +73,12 @@ export class UsersTransportService implements OnModuleInit, OnModuleDestroy {
       {
         exchange: this.usersTransportExchange,
         subject: new Subject<{ correlationId: string; data: any }>(),
+        routingKey: this.configService.get('RMQ_USERS_TRANSPORT_AUTHENTICATE_REQUEST_RK'),
+        replyQueue: this.configService.get('RMQ_USERS_TRANSPORT_AUTHENTICATE_REPLY_QUEUE'),
+      },
+      {
+        exchange: this.usersTransportExchange,
+        subject: new Subject<{ correlationId: string; data: any }>(),
         routingKey: this.configService.get('RMQ_USERS_TRANSPORT_LOGOUT_REQUEST_RK'),
         replyQueue: this.configService.get('RMQ_USERS_TRANSPORT_LOGOUT_REPLY_QUEUE'),
       },

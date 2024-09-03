@@ -6,6 +6,7 @@ config();
 export * from './bearer-prefix-regexp.constant';
 export * from './default-user-data.constant';
 export * from './email-regexp.constant';
+export * from './invalid-token-reason.enum';
 export * from './jwt-secret-key.const';
 export * from './name-regexp.constant';
 export * from './property-limitations.const';

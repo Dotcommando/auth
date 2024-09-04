@@ -1,8 +1,8 @@
 import { IUserDoc } from '../schemas';
-import { IUser } from '../types';
+import { User } from '../types';
 
 
-export function userDocToUser(doc: IUserDoc): Omit<IUser<string>, 'password'> {
+export function userDocToUser(doc: IUserDoc): User {
   return {
     id: String(doc._id),
     ...(doc.username && { username: doc.username }),

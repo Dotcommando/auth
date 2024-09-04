@@ -19,3 +19,5 @@ export interface IUser<T_id = Types.ObjectId> {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type User = Omit<IUser<string>, 'password'>;

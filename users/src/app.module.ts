@@ -6,13 +6,21 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 
-import { UserSchema } from './schemas';
-import { JwtConfigService, MongoConfigService, UserDataService, UsersService } from './services';
+import { TokenSchema, UserSchema } from './schemas';
+import {
+  JwtConfigService,
+  MongoConfigService,
+  TokenService,
+  TransportService,
+  UserDataService,
+  UsersService,
+} from './services';
 import { UsersController } from './users.controller';
 
 
 @Module({
   imports: [
+    ConfigModule.forRoot(),
     ScheduleModule.forRoot(),
     JwtModule.registerAsync({
       useClass: JwtConfigService,
@@ -23,6 +31,11 @@ import { UsersController } from './users.controller';
       inject: [ ConfigService ],
     }),
     MongooseModule.forFeatureAsync([
+      {
+        name: 'Tokens',
+        useFactory: () => TokenSchema,
+        collection: 'tokens',
+      },
       {
         name: 'Users',
         useFactory: () => UserSchema,
@@ -126,6 +139,8 @@ import { UsersController } from './users.controller';
   ],
   controllers: [ UsersController ],
   providers: [
+    TokenService,
+    TransportService,
     UserDataService,
     UsersService,
   ],

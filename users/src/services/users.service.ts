@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 
+import { TokenService } from './token.service';
 import { UserDataService } from './user-data.service';
 
 import { SignUpDto } from '../dto';
-import { IReply, ITokens, IUser } from '../types';
+import { IInvalidTokeResult, IReply, ITokens, TokenValidation, User } from '../types';
 
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly configService: ConfigService,
-    private readonly jwtService: JwtService,
+    private readonly tokenService: TokenService,
     private userDataService: UserDataService,
   ) {
   }
@@ -25,7 +25,7 @@ export class UsersService {
     return this.userDataService.checkEmailOccupation(email);
   }
 
-  public async signUp(user: SignUpDto): Promise<IReply<{ user: Omit<IUser<string>, 'password'> }>> {
+  public async signUp(user: SignUpDto): Promise<IReply<{ user: User }>> {
     try {
       const emailOccupation: { occupied: boolean } = await this.checkEmail(user.email);
 
@@ -45,7 +45,7 @@ export class UsersService {
         };
       }
 
-      const createdUser: Omit<IUser<string>, 'password'> = await this.userDataService.createUser(user);
+      const createdUser: User = await this.userDataService.createUser(user);
 
       return {
         data: { user: createdUser },
@@ -61,28 +61,106 @@ export class UsersService {
   public async signIn(
     emailOrUsername: string,
     password: string,
-  ): Promise<IReply<{ user: Omit<IUser<string>, 'password'>; tokens: ITokens }>> {
-    const user: Omit<IUser<string>, 'password'> | null = await this.userDataService
-      .validateUserCredentials(emailOrUsername, password);
+  ): Promise<IReply<{ user: User; tokens: ITokens }>> {
+    try {
+      const user: User | null = await this.userDataService
+        .validateUserCredentials(emailOrUsername, password);
+
+      if (!user) {
+        return {
+          data: null,
+          errors: [ 'Invalid email, username, or password' ],
+        };
+      }
+
+      const accessToken = this.tokenService.issueToken(user.id, 'access');
+      const refreshToken = this.tokenService.issueToken(user.id, 'refresh');
+
+      return {
+        data: {
+          user,
+          tokens: {
+            accessToken,
+            refreshToken,
+          },
+        },
+      };
+    } catch (e) {
+      return {
+        data: null,
+        errors: [ e.message ],
+      };
+    }
+  }
+
+  public async authenticate(
+    accessToken: string,
+  ): Promise<IReply<{
+    valid: boolean;
+    user?: User;
+  }>> {
+    const tokenValidation: TokenValidation = await this.tokenService.validateAccessToken(accessToken);
+
+    if (!tokenValidation.valid) {
+      return {
+        data: null,
+        errors: [ (tokenValidation as IInvalidTokeResult).reason as string ],
+      };
+    }
+
+    const user: User | null = await this.userDataService.getUserById(tokenValidation.userId);
 
     if (!user) {
       return {
         data: null,
-        errors: [ 'Invalid email, username, or password' ],
+        errors: [ 'User not found' ],
       };
     }
 
-    const accessToken = this.userDataService.issueToken(user.id, 'access');
-    const refreshToken = this.userDataService.issueToken(user.id, 'refresh');
-
     return {
-      data: {
-        user,
-        tokens: {
-          accessToken,
-          refreshToken,
-        },
-      },
+      data: { valid: true, user },
     };
+  }
+
+  public async refreshTokens(
+    refreshToken: string,
+  ): Promise<IReply<{ user: User; tokens: ITokens }>> {
+    try {
+      const tokenValidation: TokenValidation = await this.tokenService.validateRefreshToken(refreshToken);
+
+      if (!tokenValidation.valid) {
+        return {
+          data: null,
+          errors: [ (tokenValidation as IInvalidTokeResult).reason as string ],
+        };
+      }
+
+      const user: User | null = await this.userDataService.getUserById(tokenValidation.userId);
+
+      if (!user) {
+        return {
+          data: null,
+          errors: [ 'User not found' ],
+        };
+      }
+
+      const newAccessToken = this.tokenService.issueToken(user.id, 'access');
+      const newRefreshToken = this.tokenService.issueToken(user.id, 'refresh');
+
+      return {
+        data: {
+          user,
+          tokens: {
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+          },
+        },
+      };
+    } catch (e) {
+      return {
+        data: null,
+        errors: [ e.message ],
+      };
+    }
   }
 }

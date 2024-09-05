@@ -6,7 +6,7 @@ import { MessageHandlerErrorBehavior, RabbitPayload, RabbitRPC } from '@golevelu
 import { config } from 'dotenv';
 
 import { rmqReplyParams } from './constants';
-import { AuthenticateDto, RefreshTokensDto, SignUpDto } from './dto';
+import { AuthenticateDto, RefreshTokensDto, SignInDto, SignUpDto } from './dto';
 import { TransportService, UsersService } from './services';
 import { IReply, ITokens, IUser, User } from './types';
 import { replyErrorCallbackConfigurator } from './utils';
@@ -19,6 +19,7 @@ const exchange = process.env.RMQ_USERS_TRANSPORT_EXCHANGE;
 @Controller('users')
 export class UsersController {
   private rkSignUpReply = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_UP_REPLY_RK');
+  private rkSignInReply = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_IN_REPLY_RK');
 
   constructor(
     private readonly configService: ConfigService,
@@ -35,7 +36,7 @@ export class UsersController {
   })
   public async handleSignUp(
     @RabbitPayload() payload: SignUpDto,
-  ): Promise<IReply<{ user: Omit<IUser<string>, 'password'>; tokens: ITokens }>> {
+  ): Promise<IReply<{ user: User; tokens: ITokens }>> {
     const registeredUserReply: IReply<{ user: Omit<IUser<string>, 'password'> }> = await this.usersService
       .signUp(payload);
 
@@ -46,7 +47,7 @@ export class UsersController {
       };
     }
 
-    const signInReply: IReply<{ user: Omit<IUser<string>, 'password'>; tokens: ITokens }> = await this.usersService
+    const signInReply: IReply<{ user: User; tokens: ITokens }> = await this.usersService
       .signIn(payload.email, payload.password);
 
     if (signInReply.errors) {
@@ -57,6 +58,31 @@ export class UsersController {
     }
 
     this.transportService.publish(this.rkSignUpReply, signInReply);
+
+    return signInReply;
+  }
+
+  @RabbitRPC({
+    exchange,
+    routingKey: process.env.RMQ_USERS_TRANSPORT_SIGN_IN_REQUEST_RK,
+    queue: process.env.RMQ_USERS_TRANSPORT_SIGN_IN_REQUEST_QUEUE,
+    errorBehavior: MessageHandlerErrorBehavior.ACK,
+    errorHandler: replyErrorCallbackConfigurator(rmqReplyParams),
+  })
+  public async handleSignIn(
+    @RabbitPayload() payload: SignInDto,
+  ): Promise<IReply<{ user: User; tokens: ITokens }>> {
+    const signInReply: IReply<{ user: User; tokens: ITokens }> = await this.usersService
+      .signIn(payload.email, payload.password);
+
+    if (signInReply.errors) {
+      return {
+        data: null,
+        errors: signInReply.errors,
+      };
+    }
+
+    this.transportService.publish(this.rkSignInReply, signInReply);
 
     return signInReply;
   }

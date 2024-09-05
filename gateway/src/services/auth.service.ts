@@ -5,7 +5,7 @@ import { lastValueFrom, timeout } from 'rxjs';
 
 import { UsersTransportService } from './users-transport.service';
 
-import { SignInDto, SignUpDto } from '../dto';
+import { RefreshTokensDto, SignInDto, SignUpDto } from '../dto';
 import { ICorrelatedMsg, IReply, ITokens, IUser } from '../types';
 import { getIntFromEnv } from '../utils';
 
@@ -15,6 +15,7 @@ export class AuthService {
   private microserviceRequestTimeoutMs = getIntFromEnv('MICROSERVICE_REQUEST_TIMEOUT_MS', 5000);
   private usersTransportSignUpRequest = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_UP_REQUEST_RK');
   private usersTransportSignInRequest = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_IN_REQUEST_RK');
+  private usersTransportRefreshRequest = this.configService.get('RMQ_USERS_TRANSPORT_REFRESH_REQUEST_RK');
 
   constructor(
     private readonly configService: ConfigService,
@@ -50,5 +51,20 @@ export class AuthService {
     );
 
     return signInReply.data;
+  }
+
+  public async refresh(
+    query: RefreshTokensDto,
+  ): Promise<IReply<{ tokens: ITokens }>> {
+    const refreshReply: ICorrelatedMsg<IReply<{ tokens: ITokens }>> = await lastValueFrom(
+      this.usersTransportService
+        .sendRequest<RefreshTokensDto, IReply<{ tokens: ITokens }>>(
+          this.usersTransportRefreshRequest,
+          query,
+        )
+        .pipe(timeout(this.microserviceRequestTimeoutMs)),
+    );
+
+    return refreshReply.data;
   }
 }

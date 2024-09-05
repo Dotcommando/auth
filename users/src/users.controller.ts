@@ -20,6 +20,7 @@ const exchange = process.env.RMQ_USERS_TRANSPORT_EXCHANGE;
 export class UsersController {
   private rkSignUpReply = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_UP_REPLY_RK');
   private rkSignInReply = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_IN_REPLY_RK');
+  private rkRefreshReply = this.configService.get('RMQ_USERS_TRANSPORT_REFRESH_REPLY_RK');
 
   constructor(
     private readonly configService: ConfigService,
@@ -57,7 +58,7 @@ export class UsersController {
       };
     }
 
-    this.transportService.publish(this.rkSignUpReply, signInReply);
+    await this.transportService.publish(this.rkSignUpReply, signInReply);
 
     return signInReply;
   }
@@ -82,7 +83,7 @@ export class UsersController {
       };
     }
 
-    this.transportService.publish(this.rkSignInReply, signInReply);
+    await this.transportService.publish(this.rkSignInReply, signInReply);
 
     return signInReply;
   }

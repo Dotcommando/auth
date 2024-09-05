@@ -96,7 +96,13 @@ export class UsersTransportService implements OnModuleInit, OnModuleDestroy {
     this.amqpConnection.channel.consume(
       queue,
       (msg) => {
-        const data = JSON.parse(String(msg.content));
+        let data: unknown;
+
+        try {
+          data = JSON.parse(String(msg.content));
+        } catch (e) {
+          data = { errors: [ e.message ]};
+        }
 
         subject.next({
           correlationId: msg.properties.correlationId,

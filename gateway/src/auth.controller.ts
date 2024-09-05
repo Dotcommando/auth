@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { config } from 'dotenv';
 import { FastifyReply } from 'fastify';
 
-import { SignInDto, SignUpDto } from './dto';
+import { RefreshTokensDto, SignInDto, SignUpDto } from './dto';
 import { AuthService } from './services';
 import { IReply, IResponse, ITokens, IUser } from './types';
 
@@ -92,6 +92,43 @@ export class AuthController {
     return {
       status: HttpStatus.OK,
       data: result.data.user,
+    };
+  }
+
+  @Post('refresh')
+  public async refresh(
+    @Body() body: RefreshTokensDto,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ): Promise<IResponse<null>> {
+    const result: IReply<{ tokens: ITokens }> = await this.authService.refresh(body);
+
+    if (result.errors?.length) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: null,
+        errors: result.errors,
+      };
+    }
+
+    const { accessToken, refreshToken } = result.data.tokens;
+
+    res.setCookie('accessToken', accessToken, {
+      httpOnly: true,
+      path: '/',
+      secure: this.prodModeEnabled,
+      sameSite: 'lax',
+    });
+
+    res.setCookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      path: '/',
+      secure: this.prodModeEnabled,
+      sameSite: 'lax',
+    });
+
+    return {
+      status: HttpStatus.OK,
+      data: null,
     };
   }
 }

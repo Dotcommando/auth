@@ -88,7 +88,7 @@ export class TokenService {
         return { valid: false, reason: INVALID_TOKEN_REASON.REFRESH_TOKEN_BLACKLISTED };
       }
 
-      if (Date.now() > new Date(tokenDoc.expiredAfter).getTime()) {
+      if (Date.now() > new Date(decodedToken.exp).getTime()) {
         return { valid: false, reason: INVALID_TOKEN_REASON.REFRESH_TOKEN_EXPIRED };
       }
 

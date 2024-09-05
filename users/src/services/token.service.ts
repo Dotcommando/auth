@@ -8,10 +8,16 @@ import { Model, Types } from 'mongoose';
 import { INVALID_TOKEN_REASON } from '../constants';
 import { ITokenDoc } from '../schemas';
 import { TokenValidation } from '../types';
+import { getIntFromEnv } from '../utils';
 
 
 export class TokenService {
   private jwtSecretKey = this.configService.get('JWT_SECRET_KEY');
+  private audience = this.configService.get('JWT_AUDIENCE');
+  private issuer = this.configService.get('JWT_ISSUER');
+  private authorizedParty = this.configService.get('JWT_AUTHORIZED_PARTY');
+  private accessTokenExpiresIn = getIntFromEnv('JWT_ACCESS_TOKEN_EXPIRES_IN');
+  private refreshTokenExpiresIn = getIntFromEnv('JWT_REFRESH_TOKEN_EXPIRES_IN');
 
   constructor(
     @InjectModel('Tokens') private readonly tokenModel: Model<ITokenDoc>,
@@ -30,12 +36,12 @@ export class TokenService {
     return this.jwtService.sign(
       {
         sub: String(userId),
-        aud: this.configService.get('JWT_AUDIENCE'),
-        iss: this.configService.get('JWT_ISSUER'),
-        azp: this.configService.get('JWT_AUTHORIZED_PARTY'),
+        aud: this.audience,
+        iss: this.issuer,
+        azp: this.authorizedParty,
         exp: now + (tokenType === 'access'
-          ? this.configService.get('JWT_ACCESS_TOKEN_EXPIRES_IN')
-          : this.configService.get('JWT_REFRESH_TOKEN_EXPIRES_IN')),
+          ? this.accessTokenExpiresIn
+          : this.refreshTokenExpiresIn),
         iat: now,
       },
       options,

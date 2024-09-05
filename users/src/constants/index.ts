@@ -1,8 +1,3 @@
-import { config } from 'dotenv';
-
-
-config();
-
 export * from './bearer-prefix-regexp.constant';
 export * from './default-user-data.constant';
 export * from './email-regexp.constant';

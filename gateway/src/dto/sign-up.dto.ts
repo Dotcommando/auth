@@ -1,6 +1,7 @@
 import {
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
@@ -22,18 +23,20 @@ export class SignUpDto {
   @MaxLength(EMAIL_MAX_LENGTH)
   email: string;
 
+  @IsOptional()
   @IsString()
   @MaxLength(USERNAME_MAX_LENGTH)
-  username: string;
+  username?: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(FIRST_NAME_MAX_LENGTH)
   firstName: string;
 
+  @IsOptional()
   @IsString()
   @MaxLength(MIDDLE_NAME_MAX_LENGTH)
-  middleName: string;
+  middleName?: string;
 
   @IsString()
   @IsNotEmpty()

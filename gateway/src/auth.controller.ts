@@ -1,12 +1,15 @@
 import { Body, Controller, HttpStatus, Post, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { config } from 'dotenv';
 import { FastifyReply } from 'fastify';
 
 import { SignUpDto } from './dto';
 import { AuthService } from './services';
 import { IResponse, IUser } from './types';
 
+
+config();
 
 @Controller('auth')
 export class AuthController {

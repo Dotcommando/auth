@@ -8,9 +8,4 @@ export class AuthenticateDto {
   @IsNotEmpty()
   @MaxLength(TOKEN_MAX_LENGTH)
   accessToken: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(TOKEN_MAX_LENGTH)
-  refreshToken: string;
 }

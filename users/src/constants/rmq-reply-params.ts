@@ -22,6 +22,11 @@ export const rmqReplyParams: {
     routingKey: process.env.RMQ_USERS_TRANSPORT_REFRESH_REPLY_RK,
     replyQueue: process.env.RMQ_USERS_TRANSPORT_REFRESH_REPLY_QUEUE,
   },
+  [process.env.RMQ_USERS_TRANSPORT_AUTHENTICATE_REQUEST_RK]: {
+    exchange,
+    routingKey: process.env.RMQ_USERS_TRANSPORT_AUTHENTICATE_REPLY_RK,
+    replyQueue: process.env.RMQ_USERS_TRANSPORT_AUTHENTICATE_REPLY_QUEUE,
+  },
   [process.env.RMQ_USERS_TRANSPORT_LOGOUT_REQUEST_RK]: {
     exchange,
     routingKey: process.env.RMQ_USERS_TRANSPORT_LOGOUT_REPLY_RK,

@@ -9,7 +9,7 @@ import { AuthService, UsersTransportService } from './services';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({ isGlobal: true }),
     RabbitMQModule.forRootAsync(RabbitMQModule, {
       imports: [ ConfigModule ],
       useFactory: (configService: ConfigService) => ({

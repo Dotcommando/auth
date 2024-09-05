@@ -5,10 +5,11 @@ import { MessageHandlerErrorBehavior, RabbitPayload, RabbitRPC } from '@golevelu
 
 import { config } from 'dotenv';
 
-import { AuthenticateDto, SignUpDto } from './dto';
+import { rmqReplyParams } from './constants';
+import { AuthenticateDto, RefreshTokensDto, SignUpDto } from './dto';
 import { TransportService, UsersService } from './services';
-import { IReply, ITokens, IUser } from './types';
-import { configuredReplyErrorCallback } from './utils';
+import { IReply, ITokens, IUser, User } from './types';
+import { replyErrorCallbackConfigurator } from './utils';
 
 
 config();
@@ -30,7 +31,7 @@ export class UsersController {
     routingKey: process.env.RMQ_USERS_TRANSPORT_SIGN_UP_REQUEST_RK,
     queue: process.env.RMQ_USERS_TRANSPORT_SIGN_UP_REQUEST_QUEUE,
     errorBehavior: MessageHandlerErrorBehavior.ACK,
-    errorHandler: configuredReplyErrorCallback,
+    errorHandler: replyErrorCallbackConfigurator(rmqReplyParams),
   })
   public async handleSignUp(
     @RabbitPayload() payload: SignUpDto,
@@ -65,19 +66,50 @@ export class UsersController {
     routingKey: process.env.RMQ_USERS_TRANSPORT_AUTHENTICATE_REQUEST_RK,
     queue: process.env.RMQ_USERS_TRANSPORT_AUTHENTICATE_REQUEST_QUEUE,
     errorBehavior: MessageHandlerErrorBehavior.ACK,
-    errorHandler: configuredReplyErrorCallback,
+    errorHandler: replyErrorCallbackConfigurator(rmqReplyParams),
   })
   public async handleAuthenticate(
     @RabbitPayload() payload: AuthenticateDto,
-  ): Promise<IReply<{ tokens: ITokens }>> {
+  ): Promise<IReply<{ user: User }>> {
+    const authReply: IReply<{ valid: boolean; user?: User }> = await this.usersService.authenticate(payload.accessToken);
 
+    if (authReply.errors?.length || !authReply.data?.valid) {
+      return {
+        data: null,
+        errors: authReply.errors || [ 'Invalid or expired access token' ],
+      };
+    }
 
     return {
       data: {
-        tokens: {
-          accessToken: '',
-          refreshToken: '',
-        },
+        user: authReply.data.user!,
+      },
+    };
+  }
+
+  @RabbitRPC({
+    exchange,
+    routingKey: process.env.RMQ_USERS_TRANSPORT_REFRESH_REQUEST_RK,
+    queue: process.env.RMQ_USERS_TRANSPORT_REFRESH_REQUEST_QUEUE,
+    errorBehavior: MessageHandlerErrorBehavior.ACK,
+    errorHandler: replyErrorCallbackConfigurator(rmqReplyParams),
+  })
+  public async handleRefreshTokens(
+    @RabbitPayload() payload: RefreshTokensDto,
+  ): Promise<IReply<{ user: User; tokens: ITokens }>> {
+    const refreshTokensReply: IReply<{ user: User; tokens: ITokens }> = await this.usersService.refreshTokens(payload.refreshToken);
+
+    if (refreshTokensReply.errors?.length) {
+      return {
+        data: null,
+        errors: refreshTokensReply.errors,
+      };
+    }
+
+    return {
+      data: {
+        user: refreshTokensReply.data!.user,
+        tokens: refreshTokensReply.data!.tokens,
       },
     };
   }

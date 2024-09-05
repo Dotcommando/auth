@@ -2,11 +2,10 @@ import { HttpException, HttpExceptionBody } from '@nestjs/common';
 
 import { Channel, ConsumeMessage } from 'amqplib';
 
-import { rmqReplyParams } from '../constants';
 import { IReply } from '../types';
 
 
-function replyErrorCallbackConfigurator(
+export function replyErrorCallbackConfigurator(
   rmqReplyParams: {
     [key: string]: {
       exchange: string;
@@ -74,5 +73,3 @@ function replyErrorCallbackConfigurator(
 
   return replyErrorCallback;
 }
-
-export const configuredReplyErrorCallback = replyErrorCallbackConfigurator(rmqReplyParams);

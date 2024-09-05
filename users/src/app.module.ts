@@ -20,7 +20,7 @@ import { UsersController } from './users.controller';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     JwtModule.registerAsync({
       useClass: JwtConfigService,

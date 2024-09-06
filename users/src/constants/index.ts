@@ -5,6 +5,5 @@ export * from './invalid-token-reason.enum';
 export * from './jwt-secret-key.const';
 export * from './name-regexp.constant';
 export * from './property-limitations.const';
-export * from './rmq-reply-params';
 export * from './role.enum';
 export * from './username-regexp.constant';

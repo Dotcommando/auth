@@ -29,23 +29,27 @@ export class TokenService {
   public issueToken(
     userId: string | Types.ObjectId,
     tokenType: 'refresh' | 'access' = 'access',
-  ): string {
+  ): { token: string; expires: number } {
     const options = { secret: this.jwtSecretKey };
     const now = Date.now();
+    const expires = now + (tokenType === 'access'
+      ? this.accessTokenExpiresIn
+      : this.refreshTokenExpiresIn);
 
-    return this.jwtService.sign(
-      {
-        sub: String(userId),
-        aud: this.audience,
-        iss: this.issuer,
-        azp: this.authorizedParty,
-        exp: now + (tokenType === 'access'
-          ? this.accessTokenExpiresIn
-          : this.refreshTokenExpiresIn),
-        iat: now,
-      },
-      options,
-    );
+    return {
+      token: this.jwtService.sign(
+        {
+          sub: String(userId),
+          aud: this.audience,
+          iss: this.issuer,
+          azp: this.authorizedParty,
+          exp: expires,
+          iat: now,
+        },
+        options,
+      ),
+      expires,
+    };
   }
 
   public async validateAccessToken(token: string): Promise<TokenValidation> {

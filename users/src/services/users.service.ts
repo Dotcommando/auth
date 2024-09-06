@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 
 import { TokenService } from './token.service';
 import { UserDataService } from './user-data.service';
@@ -11,7 +10,6 @@ import { IInvalidTokeResult, IReply, ITokens, TokenValidation, User } from '../t
 @Injectable()
 export class UsersService {
   constructor(
-    private readonly configService: ConfigService,
     private readonly tokenService: TokenService,
     private userDataService: UserDataService,
   ) {
@@ -73,15 +71,16 @@ export class UsersService {
         };
       }
 
-      const accessToken = this.tokenService.issueToken(user.id, 'access');
-      const refreshToken = this.tokenService.issueToken(user.id, 'refresh');
+      const accessTokenRes: { token: string; expires: number } = this.tokenService.issueToken(user.id, 'access');
+      const refreshTokenRes: { token: string; expires: number } = this.tokenService.issueToken(user.id, 'refresh');
 
       return {
         data: {
           user,
           tokens: {
-            accessToken,
-            refreshToken,
+            accessToken: accessTokenRes.token,
+            refreshToken: refreshTokenRes.token,
+            expires: refreshTokenRes.expires,
           },
         },
       };
@@ -144,15 +143,16 @@ export class UsersService {
         };
       }
 
-      const newAccessToken = this.tokenService.issueToken(user.id, 'access');
-      const newRefreshToken = this.tokenService.issueToken(user.id, 'refresh');
+      const accessTokenRes: { token: string; expires: number } = this.tokenService.issueToken(user.id, 'access');
+      const refreshTokenRes: { token: string; expires: number } = this.tokenService.issueToken(user.id, 'refresh');
 
       return {
         data: {
           user,
           tokens: {
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken,
+            accessToken: accessTokenRes.token,
+            refreshToken: refreshTokenRes.token,
+            expires: refreshTokenRes.expires,
           },
         },
       };

@@ -1,2 +1,2 @@
 export * from './get-int-from-env';
-export * from './reply-error-callback';
+export * from './rmq-error-handler';

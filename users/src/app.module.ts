@@ -11,7 +11,6 @@ import {
   JwtConfigService,
   MongoConfigService,
   TokenService,
-  TransportService,
   UserDataService,
   UsersService,
 } from './services';
@@ -140,7 +139,6 @@ import { UsersController } from './users.controller';
   controllers: [ UsersController ],
   providers: [
     TokenService,
-    TransportService,
     UserDataService,
     UsersService,
   ],

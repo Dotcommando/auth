@@ -36,9 +36,10 @@ export class AuthController {
       };
     }
 
-    const { accessToken, refreshToken } = result.data.tokens;
+    const { accessToken, refreshToken, expires } = result.data.tokens;
 
     res.setCookie('accessToken', accessToken, {
+      expires: new Date(expires),
       httpOnly: true,
       path: '/',
       secure: this.prodModeEnabled,
@@ -46,6 +47,7 @@ export class AuthController {
     });
 
     res.setCookie('refreshToken', refreshToken, {
+      expires: new Date(expires),
       httpOnly: true,
       path: '/',
       secure: this.prodModeEnabled,
@@ -73,9 +75,10 @@ export class AuthController {
       };
     }
 
-    const { accessToken, refreshToken } = result.data.tokens;
+    const { accessToken, refreshToken, expires } = result.data.tokens;
 
     res.setCookie('accessToken', accessToken, {
+      expires: new Date(expires),
       httpOnly: true,
       path: '/',
       secure: this.prodModeEnabled,
@@ -83,6 +86,7 @@ export class AuthController {
     });
 
     res.setCookie('refreshToken', refreshToken, {
+      expires: new Date(expires),
       httpOnly: true,
       path: '/',
       secure: this.prodModeEnabled,
@@ -110,9 +114,10 @@ export class AuthController {
       };
     }
 
-    const { accessToken, refreshToken } = result.data.tokens;
+    const { accessToken, refreshToken, expires } = result.data.tokens;
 
     res.setCookie('accessToken', accessToken, {
+      expires: new Date(expires),
       httpOnly: true,
       path: '/',
       secure: this.prodModeEnabled,
@@ -120,6 +125,33 @@ export class AuthController {
     });
 
     res.setCookie('refreshToken', refreshToken, {
+      expires: new Date(expires),
+      httpOnly: true,
+      path: '/',
+      secure: this.prodModeEnabled,
+      sameSite: 'lax',
+    });
+
+    return {
+      status: HttpStatus.OK,
+      data: null,
+    };
+  }
+
+  @Post('logout')
+  public async logout(
+    @Res({ passthrough: true }) res: FastifyReply,
+  ): Promise<IResponse<null>> {
+    res.setCookie('accessToken', '', {
+      expires: new Date(0),
+      httpOnly: true,
+      path: '/',
+      secure: this.prodModeEnabled,
+      sameSite: 'lax',
+    });
+
+    res.setCookie('refreshToken', '', {
+      expires: new Date(0),
       httpOnly: true,
       path: '/',
       secure: this.prodModeEnabled,

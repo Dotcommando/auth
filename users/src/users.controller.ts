@@ -1,15 +1,13 @@
 import { Controller } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 
 import { MessageHandlerErrorBehavior, RabbitPayload, RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 
 import { config } from 'dotenv';
 
-import { rmqReplyParams } from './constants';
 import { AuthenticateDto, RefreshTokensDto, SignInDto, SignUpDto } from './dto';
-import { TransportService, UsersService } from './services';
+import { UsersService } from './services';
 import { IReply, ITokens, IUser, User } from './types';
-import { replyErrorCallbackConfigurator } from './utils';
+import { rmqErrorHandler } from './utils';
 
 
 config();
@@ -18,13 +16,7 @@ const exchange = process.env.RMQ_USERS_TRANSPORT_EXCHANGE;
 
 @Controller('users')
 export class UsersController {
-  private rkSignUpReply = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_UP_REPLY_RK');
-  private rkSignInReply = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_IN_REPLY_RK');
-  private rkRefreshReply = this.configService.get('RMQ_USERS_TRANSPORT_REFRESH_REPLY_RK');
-
   constructor(
-    private readonly configService: ConfigService,
-    private readonly transportService: TransportService,
     private readonly usersService: UsersService,
   ) {}
 
@@ -33,7 +25,7 @@ export class UsersController {
     routingKey: process.env.RMQ_USERS_TRANSPORT_SIGN_UP_REQUEST_RK,
     queue: process.env.RMQ_USERS_TRANSPORT_SIGN_UP_REQUEST_QUEUE,
     errorBehavior: MessageHandlerErrorBehavior.ACK,
-    errorHandler: replyErrorCallbackConfigurator(rmqReplyParams),
+    errorHandler: rmqErrorHandler,
   })
   public async handleSignUp(
     @RabbitPayload() payload: SignUpDto,
@@ -58,8 +50,6 @@ export class UsersController {
       };
     }
 
-    await this.transportService.publish(this.rkSignUpReply, signInReply);
-
     return signInReply;
   }
 
@@ -68,7 +58,7 @@ export class UsersController {
     routingKey: process.env.RMQ_USERS_TRANSPORT_SIGN_IN_REQUEST_RK,
     queue: process.env.RMQ_USERS_TRANSPORT_SIGN_IN_REQUEST_QUEUE,
     errorBehavior: MessageHandlerErrorBehavior.ACK,
-    errorHandler: replyErrorCallbackConfigurator(rmqReplyParams),
+    errorHandler: rmqErrorHandler,
   })
   public async handleSignIn(
     @RabbitPayload() payload: SignInDto,
@@ -83,8 +73,6 @@ export class UsersController {
       };
     }
 
-    await this.transportService.publish(this.rkSignInReply, signInReply);
-
     return signInReply;
   }
 
@@ -93,7 +81,7 @@ export class UsersController {
     routingKey: process.env.RMQ_USERS_TRANSPORT_AUTHENTICATE_REQUEST_RK,
     queue: process.env.RMQ_USERS_TRANSPORT_AUTHENTICATE_REQUEST_QUEUE,
     errorBehavior: MessageHandlerErrorBehavior.ACK,
-    errorHandler: replyErrorCallbackConfigurator(rmqReplyParams),
+    errorHandler: rmqErrorHandler,
   })
   public async handleAuthenticate(
     @RabbitPayload() payload: AuthenticateDto,
@@ -119,7 +107,7 @@ export class UsersController {
     routingKey: process.env.RMQ_USERS_TRANSPORT_REFRESH_REQUEST_RK,
     queue: process.env.RMQ_USERS_TRANSPORT_REFRESH_REQUEST_QUEUE,
     errorBehavior: MessageHandlerErrorBehavior.ACK,
-    errorHandler: replyErrorCallbackConfigurator(rmqReplyParams),
+    errorHandler: rmqErrorHandler,
   })
   public async handleRefreshTokens(
     @RabbitPayload() payload: RefreshTokensDto,

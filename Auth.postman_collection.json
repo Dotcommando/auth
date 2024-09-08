@@ -1,0 +1,282 @@
+{
+	"info": {
+		"_postman_id": "ab86ad15-a0dc-41ff-944a-966b49cb95d6",
+		"name": "Auth",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "5673578"
+	},
+	"item": [
+		{
+			"name": "Auth Copy",
+			"item": [
+				{
+					"name": "Sign Up",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const cookies = pm.cookies;",
+									"const response = pm.response.json();",
+									"",
+									"const accessToken = cookies.get('accessToken');",
+									"const refreshToken = cookies.get('refreshToken');",
+									"const userId = response.data.id;",
+									"",
+									"pm.environment.set('accessToken', accessToken);",
+									"pm.environment.set('refreshToken', refreshToken);",
+									"pm.environment.set('userId', userId);",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"firstName\": \"Fyodor\",\n    \"lastName\": \"Sumkin\",\n    \"email\": \"f.sumkin@gmail.com\",\n    \"password\": \"1234567qwerty\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{PROTOCOL}}://{{HOST}}/api/v1/auth/sign-up",
+							"protocol": "{{PROTOCOL}}",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"sign-up"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Sign In",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const cookies = pm.cookies;",
+									"const response = pm.response.json();",
+									"",
+									"const accessToken = cookies.get('accessToken');",
+									"const refreshToken = cookies.get('refreshToken');",
+									"const userId = response.data.id;",
+									"",
+									"pm.environment.set('accessToken', accessToken);",
+									"pm.environment.set('refreshToken', refreshToken);",
+									"pm.environment.set('userId', userId);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"f.sumkin@gmail.com\",\n    \"password\": \"1234567qwerty\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{PROTOCOL}}://{{HOST}}/api/v1/auth/sign-in",
+							"protocol": "{{PROTOCOL}}",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"sign-in"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const cookies = pm.cookies;",
+									"",
+									"const accessToken = cookies.get('accessToken');",
+									"const refreshToken = cookies.get('refreshToken');",
+									"",
+									"pm.environment.set('accessToken', accessToken);",
+									"pm.environment.set('refreshToken', refreshToken);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{PROTOCOL}}://{{HOST}}/api/v1/auth/logout",
+							"protocol": "{{PROTOCOL}}",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Tokens",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const cookies = pm.cookies;",
+									"",
+									"const accessToken = cookies.get('accessToken');",
+									"const refreshToken = cookies.get('refreshToken');",
+									"",
+									"pm.environment.set('accessToken', accessToken);",
+									"pm.environment.set('refreshToken', refreshToken);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{PROTOCOL}}://{{HOST}}/api/v1/auth/refresh",
+							"protocol": "{{PROTOCOL}}",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users Copy",
+			"item": [
+				{
+					"name": "Get One User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{PROTOCOL}}://{{HOST}}/api/v1/users/one/{{userId}}",
+							"protocol": "{{PROTOCOL}}",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"one",
+								"{{userId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "PROTOCOL",
+			"value": "http",
+			"type": "string"
+		},
+		{
+			"key": "HOST",
+			"value": "localhost:4400",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "66da8bf61b3813b99085a220",
+			"type": "string"
+		}
+	]
+}

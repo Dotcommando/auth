@@ -85,7 +85,7 @@ export class UsersController {
   })
   public async handleAuthenticate(
     @RabbitPayload() payload: AuthenticateDto,
-  ): Promise<IReply<{ user: User }>> {
+  ): Promise<IReply<{ valid: boolean; user: User }>> {
     const authReply: IReply<{ valid: boolean; user?: User }> = await this.usersService.authenticate(payload.accessToken);
 
     if (authReply.errors?.length || !authReply.data?.valid) {
@@ -97,6 +97,7 @@ export class UsersController {
 
     return {
       data: {
+        valid: authReply.data.valid,
         user: authReply.data.user!,
       },
     };

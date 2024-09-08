@@ -5,6 +5,7 @@ import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 
 import { AuthController } from './auth.controller';
 import { AuthService, UsersTransportService } from './services';
+import { UsersController } from './users.controller';
 
 
 @Module({
@@ -107,6 +108,7 @@ import { AuthService, UsersTransportService } from './services';
   ],
   controllers: [
     AuthController,
+    UsersController,
   ],
   providers: [
     AuthService,

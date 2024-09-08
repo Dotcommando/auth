@@ -34,14 +34,14 @@ export class UsersService {
         };
       }
 
-      const usernameOccupation: { occupied: boolean } = await this.checkUsername(user.username);
+      // const usernameOccupation: { occupied: boolean } = await this.checkUsername(user.username);
 
-      if (usernameOccupation.occupied) {
-        return {
-          data: null,
-          errors: [ 'Username is already occupied' ],
-        };
-      }
+      // if (usernameOccupation.occupied) {
+      //   return {
+      //     data: null,
+      //     errors: [ 'Username is already occupied' ],
+      //   };
+      // }
 
       const createdUser: User = await this.userDataService.createUser(user);
 

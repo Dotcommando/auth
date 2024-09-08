@@ -5,8 +5,8 @@ import { lastValueFrom, timeout } from 'rxjs';
 
 import { UsersTransportService } from './users-transport.service';
 
-import { RefreshTokensDto, SignInDto, SignUpDto } from '../dto';
-import { ICorrelatedMsg, IReply, ITokens, IUser } from '../types';
+import { AuthenticateDto, RefreshTokensDto, SignInDto, SignUpDto } from '../dto';
+import { ICorrelatedMsg, IReply, ITokens, IUser, User } from '../types';
 import { getIntFromEnv } from '../utils';
 
 
@@ -16,6 +16,7 @@ export class AuthService {
   private usersTransportSignUpRequest = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_UP_REQUEST_RK');
   private usersTransportSignInRequest = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_IN_REQUEST_RK');
   private usersTransportRefreshRequest = this.configService.get('RMQ_USERS_TRANSPORT_REFRESH_REQUEST_RK');
+  private usersTransportAuthenticateRequest = this.configService.get('RMQ_USERS_TRANSPORT_AUTHENTICATE_REQUEST_RK');
 
   constructor(
     private readonly configService: ConfigService,
@@ -66,5 +67,20 @@ export class AuthService {
     );
 
     return refreshReply.data;
+  }
+
+  public async authenticate(
+    query: AuthenticateDto,
+  ): Promise<IReply<{ valid: boolean; user?: User }>> {
+    const authenticationReply: ICorrelatedMsg<IReply<{ valid: boolean; user?: User }>> = await lastValueFrom(
+      this.usersTransportService
+        .sendRequest<AuthenticateDto, IReply<{ valid: boolean; user?: User }>>(
+          this.usersTransportAuthenticateRequest,
+          query,
+        )
+        .pipe(timeout(this.microserviceRequestTimeoutMs)),
+    );
+
+    return authenticationReply.data;
   }
 }

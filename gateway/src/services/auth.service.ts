@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { lastValueFrom, timeout } from 'rxjs';
 
 import { UsersTransportService } from './users-transport.service';
 
+import { BEARER_PREFIX } from '../constants';
 import { AuthenticateDto, RefreshTokensDto, SignInDto, SignUpDto } from '../dto';
 import { ICorrelatedMsg, IReply, ITokens, IUser, User } from '../types';
 import { getIntFromEnv } from '../utils';
@@ -12,6 +14,7 @@ import { getIntFromEnv } from '../utils';
 
 @Injectable()
 export class AuthService {
+  private prodModeEnabled = this.configService.get('MODE') === 'prod';
   private microserviceRequestTimeoutMs = getIntFromEnv('MICROSERVICE_REQUEST_TIMEOUT_MS', 5000);
   private usersTransportSignUpRequest = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_UP_REQUEST_RK');
   private usersTransportSignInRequest = this.configService.get('RMQ_USERS_TRANSPORT_SIGN_IN_REQUEST_RK');
@@ -82,5 +85,27 @@ export class AuthService {
     );
 
     return authenticationReply.data;
+  }
+
+  public getTokenFromRequest(req: FastifyRequest): string {
+    return req.cookies?.refreshToken || req.headers['authorization']?.replace(BEARER_PREFIX, '');
+  }
+
+  public setCookies(res: FastifyReply, accessToken: string, refreshToken: string, expires: number) {
+    res.setCookie('accessToken', accessToken, {
+      expires: new Date(expires),
+      httpOnly: true,
+      path: '/',
+      secure: this.prodModeEnabled,
+      sameSite: 'lax',
+    });
+
+    res.setCookie('refreshToken', refreshToken, {
+      expires: new Date(expires),
+      httpOnly: true,
+      path: '/',
+      secure: this.prodModeEnabled,
+      sameSite: 'lax',
+    });
   }
 }

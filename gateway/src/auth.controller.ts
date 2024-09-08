@@ -1,10 +1,9 @@
-import { Body, Controller, HttpStatus, Post, Res } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Body, Controller, HttpStatus, Post, Req, Res } from '@nestjs/common';
 
 import { config } from 'dotenv';
-import { FastifyReply } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 
-import { RefreshTokensDto, SignInDto, SignUpDto } from './dto';
+import { SignInDto, SignUpDto } from './dto';
 import { AuthService } from './services';
 import { IReply, IResponse, ITokens, IUser } from './types';
 
@@ -13,10 +12,7 @@ config();
 
 @Controller('auth')
 export class AuthController {
-  private prodModeEnabled = this.configService.get('MODE') === 'prod';
-
   constructor(
-    private readonly configService: ConfigService,
     private readonly authService: AuthService,
   ) {
   }
@@ -38,21 +34,7 @@ export class AuthController {
 
     const { accessToken, refreshToken, expires } = result.data.tokens;
 
-    res.setCookie('accessToken', accessToken, {
-      expires: new Date(expires),
-      httpOnly: true,
-      path: '/',
-      secure: this.prodModeEnabled,
-      sameSite: 'lax',
-    });
-
-    res.setCookie('refreshToken', refreshToken, {
-      expires: new Date(expires),
-      httpOnly: true,
-      path: '/',
-      secure: this.prodModeEnabled,
-      sameSite: 'lax',
-    });
+    this.authService.setCookies(res, accessToken, refreshToken, expires);
 
     return {
       status: HttpStatus.CREATED,
@@ -77,21 +59,7 @@ export class AuthController {
 
     const { accessToken, refreshToken, expires } = result.data.tokens;
 
-    res.setCookie('accessToken', accessToken, {
-      expires: new Date(expires),
-      httpOnly: true,
-      path: '/',
-      secure: this.prodModeEnabled,
-      sameSite: 'lax',
-    });
-
-    res.setCookie('refreshToken', refreshToken, {
-      expires: new Date(expires),
-      httpOnly: true,
-      path: '/',
-      secure: this.prodModeEnabled,
-      sameSite: 'lax',
-    });
+    this.authService.setCookies(res, accessToken, refreshToken, expires);
 
     return {
       status: HttpStatus.OK,
@@ -101,10 +69,11 @@ export class AuthController {
 
   @Post('refresh')
   public async refresh(
-    @Body() body: RefreshTokensDto,
+    @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ): Promise<IResponse<null>> {
-    const result: IReply<{ tokens: ITokens }> = await this.authService.refresh(body);
+    const refreshToken = this.authService.getTokenFromRequest(req);
+    const result: IReply<{ tokens: ITokens }> = await this.authService.refresh({ refreshToken });
 
     if (result.errors?.length) {
       return {
@@ -114,23 +83,9 @@ export class AuthController {
       };
     }
 
-    const { accessToken, refreshToken, expires } = result.data.tokens;
+    const { accessToken, refreshToken: newRefreshToken, expires } = result.data.tokens;
 
-    res.setCookie('accessToken', accessToken, {
-      expires: new Date(expires),
-      httpOnly: true,
-      path: '/',
-      secure: this.prodModeEnabled,
-      sameSite: 'lax',
-    });
-
-    res.setCookie('refreshToken', refreshToken, {
-      expires: new Date(expires),
-      httpOnly: true,
-      path: '/',
-      secure: this.prodModeEnabled,
-      sameSite: 'lax',
-    });
+    this.authService.setCookies(res, accessToken, newRefreshToken, expires);
 
     return {
       status: HttpStatus.OK,
@@ -142,21 +97,7 @@ export class AuthController {
   public async logout(
     @Res({ passthrough: true }) res: FastifyReply,
   ): Promise<IResponse<null>> {
-    res.setCookie('accessToken', '', {
-      expires: new Date(0),
-      httpOnly: true,
-      path: '/',
-      secure: this.prodModeEnabled,
-      sameSite: 'lax',
-    });
-
-    res.setCookie('refreshToken', '', {
-      expires: new Date(0),
-      httpOnly: true,
-      path: '/',
-      secure: this.prodModeEnabled,
-      sameSite: 'lax',
-    });
+    this.authService.setCookies(res, '', '', new Date(0).getTime());
 
     return {
       status: HttpStatus.OK,

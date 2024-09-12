@@ -6,7 +6,10 @@ import { IReply, User } from '../types';
 
 
 @Injectable()
-export class AuthenticationGuard {
+/**
+ * When authentication is nice to have.
+ */
+export class OptionalAuthenticationGuard {
   constructor(
     private readonly authService: AuthService,
   ) {}
@@ -22,14 +25,12 @@ export class AuthenticationGuard {
 
         if (authResult?.data?.valid && authResult.data.user) {
           request['user'] = authResult.data.user;
-
-          return true;
         }
       } catch (error) {
         request['user'] = null;
       }
     }
 
-    return false;
+    return true;
   }
 }

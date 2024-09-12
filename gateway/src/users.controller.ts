@@ -6,7 +6,7 @@ import { FastifyReply } from 'fastify';
 import { ROLE } from './constants';
 import { Roles } from './decorators';
 import { GetOneUserDto } from './dto';
-import { AuthenticationGuard, UserAccessGuard } from './guards';
+import { OptionalAuthenticationGuard, UserAccessGuard } from './guards';
 import { IResponse, User } from './types';
 
 
@@ -15,7 +15,7 @@ config();
 @Controller('users')
 export class UsersController {
   @Roles(ROLE.USER)
-  @UseGuards(AuthenticationGuard, UserAccessGuard)
+  @UseGuards(OptionalAuthenticationGuard, UserAccessGuard)
   @Get('/one/:id')
   public async getUser(
     @Param() param: GetOneUserDto,
